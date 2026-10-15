@@ -739,7 +739,7 @@ function renderManage(){
     const subs=data[cat], names=Object.keys(subs).filter(Boolean);
     return `<section class="manage-category"><div class="manage-category-header"><span>${cat}</span><small>${names.reduce((n,s)=>n+subs[s].length,0)} 道菜 · ${Object.keys(subs).filter(Boolean).length} 个细分</small></div>
       <details class="sub-config"><summary>＋ 添加细分</summary><div class="add-sub-row"><input data-cat="${cat}" placeholder="新增细分，如快餐、面食" maxlength="30"><button data-act="sub-add" data-cat="${cat}">添加细分</button></div></details>
-      ${names.map(sub=>`<details class="manage-sub">
+      ${names.map(sub=>`<details class="manage-sub" open>
         <summary class="manage-sub-header">
           <span class="manage-sub-name">${escapeHtml(sub)}<small>${(subs[sub]||[]).length} 道</small></span>
           ${sub?`<button class="btn-del-sub" data-act="sub-delete" data-cat="${cat}" data-sub="${escapeHtml(sub)}" onclick="event.preventDefault();event.stopPropagation()">删除细分</button>`:''}
