@@ -460,11 +460,13 @@
 .sub-config>summary span{float:right;color:var(--text-secondary);font-size:11px}
 .sub-config .add-sub-row{padding:0 16px 12px;border:0}
 .manage-sub{border-bottom:1px solid var(--border)}.manage-sub:last-child{border-bottom:none}
-.manage-sub>summary{padding:12px 16px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;transition:background .15s}
+.manage-sub>summary{padding:12px 16px;cursor:pointer;list-style:none;display:flex;align-items:center;transition:background .15s}
 .manage-sub>summary:hover{background:var(--bg)}
 .manage-sub>summary::-webkit-details-marker{display:none}
-.manage-sub>summary::before{content:'▸';margin-right:8px;color:var(--text-secondary);font-size:12px;transition:transform .15s}
+.manage-sub>summary::before{content:'▸';margin-right:8px;color:var(--text-secondary);font-size:12px;transition:transform .15s;flex-shrink:0}
 .manage-sub[open]>summary::before{transform:rotate(90deg)}
+.manage-sub>summary .manage-sub-name{flex:1}
+.manage-sub>summary .btn-del-sub{flex-shrink:0}
 .manage-sub-name{font-size:13px;font-weight:600;color:var(--text)}
 .manage-sub-name small{font-size:11px;font-weight:400;color:var(--text-secondary);margin-left:8px}
 .btn-del-sub{font-size:12px;color:var(--danger);opacity:0.7}.btn-del-sub:hover{opacity:1}
