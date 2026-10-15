@@ -666,7 +666,7 @@ function renderCategoryTabs(){
 }
 $('categoryTabs').addEventListener('click',e=>{
   const b=e.target.closest('[data-cat]'); if(!b) return;
-  resetResult(); currentCategory=b.dataset.cat; renderCategoryTabs();
+  resetResult(); currentCategory=b.dataset.cat; renderCategoryTabs(); renderHistory();
 });
 function collectCurrentDishes(){
   return Object.entries(data[currentCategory]).filter(([sub])=>sub).flatMap(([sub,arr])=>arr.map(dish=>({sub,dish})));
@@ -784,14 +784,12 @@ $('manageList').addEventListener('keydown',e=>{
   }
 });
 function renderHistory(){
-  let html='';
-  DEFAULT_CATEGORIES.forEach(cat=>{
-    const entries=Object.entries(history[cat]||{}).map(([name,val])=>[name,typeof val==='number'?{count:val,lastTime:''}:val]).filter(([,v])=>v && Number(v.count)>0).sort((a,b)=>b[1].count-a[1].count);
-    if(!entries.length) return;
-    html+=`<div style="padding:10px 18px;font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--bg);border-bottom:1px solid var(--border);">${cat}</div>`;
-    html+=entries.map(([name,count],i)=>`<div class="history-item"><div class="history-rank">${i+1}</div><div class="history-name">${escapeHtml(name)}</div><div class="history-count">${Number(count.count)} 次${count.lastTime?`<small class="last-time">最近 ${escapeHtml(count.lastTime)}</small>`:''}</div></div>`).join('');
-  });
-  $('historyList').innerHTML=html||'<div class="empty-hint">还没有抽菜记录</div>';
+  const entries=Object.entries(history[currentCategory]||{}).map(([name,val])=>[name,typeof val==='number'?{count:val,lastTime:''}:val]).filter(([,v])=>v && Number(v.count)>0).sort((a,b)=>b[1].count-a[1].count);
+  if(!entries.length){
+    $('historyList').innerHTML='<div class="empty-hint">还没有抽菜记录</div>';
+    return;
+  }
+  $('historyList').innerHTML=entries.map(([name,count],i)=>`<div class="history-item"><div class="history-rank">${i+1}</div><div class="history-name">${escapeHtml(name)}</div><div class="history-count">${Number(count.count)} 次${count.lastTime?`<small class="last-time">最近 ${escapeHtml(count.lastTime)}</small>`:''}</div></div>`).join('');
 }
 $('btnClearHistory').addEventListener('click',()=>{
   if(confirm('清空所有被抽中次数？')){history={};persist(HISTORY_KEY,history);renderHistory();}
