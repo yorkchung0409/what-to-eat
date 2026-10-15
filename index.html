@@ -799,7 +799,7 @@ $('btnExport').addEventListener('click',()=>{
   const a=document.createElement('a');a.href=url;a.download='今天吃什么-备份.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
 renderCategoryTabs(); renderHistory();
-switchView('manage');
+switchView('main');
 
 </script>
 </body>
