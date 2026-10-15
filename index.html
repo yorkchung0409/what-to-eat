@@ -710,20 +710,19 @@ $('btnSpin').addEventListener('click',()=>{
   if(rollState.startsWith('rolling')) return;
   const pool=collectCurrentDishes();
   if(!pool.length){ showToast('当前分类还没有菜品，去「菜单」页添加吧'); return; }
-  const subs=Object.keys(data[currentCategory]).filter(s=>s && data[currentCategory][s].length);
-  if(!subs.length){ showToast('先去「菜单」页添加细分和菜品'); return; }
-  const options=subs.slice();
-  rollState='rolling_sub';
-  animate(options,'选择细分中',sub=>{
-    pickedSub=sub;
-    rollState='sub_done'; $('dishName').textContent=sub;
-    $('dishLabel').textContent='选好了细分';
-    $('dishHint').textContent='不满意可重抽，确认后再抽具体菜品';
-    $('btnSpin').style.display='none'; $('confirmRow').style.display='flex';
+  // 直接抽：从所有菜品里随机选一个
+  const options=pool.map(p=>p.sub+' - '+p.dish);
+  rollState='rolling';
+  animate(options,'抽取中',name=>{
+    // 从结果反推 sub 和 dish
+    const [sub, ...dishParts] = name.split(' - ');
+    const dish = dishParts.join(' - ');
+    pickedSub = sub;
+    rollState='done'; $('dishName').textContent=name;
+    $('dishLabel').textContent='定了！'; $('dishHint').textContent=currentCategory+' · '+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false});
+    $('btnSpin').textContent='再抽一次'; record(sub,dish);
   });
 });
-$('btnRerollSub').addEventListener('click',()=>{if(rollState==='sub_done') $('btnSpin').click();});
-$('btnConfirmSub').addEventListener('click',()=>{ if(rollState==='sub_done') rollDish(pickedSub); });
 function addItems(cat,sub,text){
   const list=text.split(/[\r\n,，;；、]+/).map(clean).filter(Boolean);
   if(!list.length){ showToast('请输入菜名'); return false; }
