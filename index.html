@@ -85,7 +85,7 @@
     padding-top: calc(20px + env(safe-area-inset-top));
     padding-left: calc(20px + env(safe-area-inset-left));
     padding-right: calc(20px + env(safe-area-inset-right));
-    padding-bottom: calc(106px + env(safe-area-inset-bottom));
+    padding-bottom: calc(128px + env(safe-area-inset-bottom));
   }
 
   /* ================= 顶部 ================= */
@@ -634,11 +634,12 @@
     display: flex;
     justify-content: center;
     gap: 6px;
-    padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
-    background: rgba(255, 255, 255, .88);
+    padding: 9px 0 calc(9px + env(safe-area-inset-bottom));
+    background: rgba(255, 255, 255, .94);
     -webkit-backdrop-filter: saturate(180%) blur(18px);
     backdrop-filter: saturate(180%) blur(18px);
-    border-top: 1px solid rgba(236, 227, 218, .9);
+    border-top: 1px solid #E1D4C6;
+    box-shadow: 0 -8px 24px rgba(51, 36, 31, .07);
   }
   .nav-item {
     display: flex;
@@ -796,6 +797,47 @@ const $ = id => document.getElementById(id);
 const clean = s => String(s || '').trim();
 const escapeHtml = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nowTime = () => new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false});
+
+/* ===== 时间：记录存完整 ISO 时间戳，显示时按今天/昨天/更早格式化 ===== */
+function stampNow(){ return new Date().toISOString(); }
+// 兼容旧数据：只有 "22:48" 的按当天补全；注意 iOS 不认 "YYYY-MM-DD HH:MM"，必须走 ISO
+function parseStamp(v){
+  if(!v) return null;
+  const text = String(v);
+  if(/^\d{1,2}:\d{2}$/.test(text)){
+    const [h,m] = text.split(':').map(Number);
+    const d = new Date();
+    d.setHours(h, m, 0, 0);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  const d = new Date(text);
+  return isNaN(d.getTime()) ? null : d;
+}
+// 取较晚的那个时间戳，跨天也能比
+function laterStamp(a, b){
+  const da = parseStamp(a), db = parseStamp(b);
+  if(!da) return b || '';
+  if(!db) return a;
+  return da.getTime() >= db.getTime() ? a : b;
+}
+function dayDiff(d){
+  const start = new Date(); start.setHours(0,0,0,0);
+  const day = new Date(d); day.setHours(0,0,0,0);
+  return Math.round((start - day) / 86400000);
+}
+function formatWhen(v){
+  const d = parseStamp(v);
+  if(!d) return '';
+  const hhmm = d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false});
+  const diff = dayDiff(d);
+  if(diff === 0) return '今天 ' + hhmm;
+  if(diff === 1) return '昨天 ' + hhmm;
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  return sameYear
+    ? `${d.getMonth()+1}月${d.getDate()}日 ${hhmm}`
+    : `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${hhmm}`;
+}
+
 // 按字数给菜名分档，长名字自动缩字号
 function nameLenAttr(name){
   const n = [...String(name)].length;
@@ -841,8 +883,8 @@ function migrateHistory(raw){
       const count = Number(typeof val==='object' && val ? val.count : val) || 0;
       const lastTime = typeof val==='object' && val && val.lastTime ? val.lastTime : '';
       const prev = target[dish];
-      // 合并同名菜时取更晚的时间，HH:MM 可直接按字符串比较
-      const later = !prev ? lastTime : (!prev.lastTime ? lastTime : (lastTime && lastTime > prev.lastTime ? lastTime : prev.lastTime));
+      // 合并同名菜时取更晚的时间（支持旧的 "HH:MM" 与新的 ISO 时间戳混用）
+      const later = !prev ? lastTime : laterStamp(prev.lastTime, lastTime);
       target[dish] = prev
         ? { count: prev.count + count, lastTime: later }
         : { count, lastTime };
@@ -947,7 +989,7 @@ function record(dish){
   const bucket = history[currentCategory] || (history[currentCategory] = Object.create(null));
   const old = bucket[dish];
   const prevCount = typeof old === 'object' && old ? Number(old.count) || 0 : Number(old) || 0;
-  bucket[dish] = { count: prevCount + 1, lastTime: nowTime() };
+  bucket[dish] = { count: prevCount + 1, lastTime: stampNow() };
   saveHistory();
   renderHistory();
   if(navigator.vibrate) navigator.vibrate([30,50,30]);
@@ -1086,7 +1128,13 @@ function renderHistory(){
   const entries = Object.entries(bucket)
     .map(([name,val])=>[name, typeof val === 'number' ? {count:val,lastTime:''} : val])
     .filter(([,v])=>v && Number(v.count) > 0)
-    .sort((a,b)=>b[1].count - a[1].count);
+    .sort((a,b)=>{
+      const d = b[1].count - a[1].count;
+      if(d) return d;
+      // 次数相同按最近时间倒序
+      const ta = parseStamp(a[1].lastTime), tb = parseStamp(b[1].lastTime);
+      return (tb ? tb.getTime() : 0) - (ta ? ta.getTime() : 0);
+    });
 
   const total = entries.reduce((s,[,v])=>s + Number(v.count), 0);
   $('historyNote').textContent = entries.length ? `${entries.length} 道 · 累计 ${total} 次` : '';
@@ -1095,15 +1143,17 @@ function renderHistory(){
     $('historyList').innerHTML = `<div class="empty-box">${EMPTY_ICON}还没有抽签记录</div>`;
     return;
   }
-  $('historyList').innerHTML = entries.map(([name,val],i)=>
-    `<div class="history-item ${i<3?'top'+(i+1):''}">
+  $('historyList').innerHTML = entries.map(([name,val],i)=>{
+    const when = formatWhen(val.lastTime);
+    return `<div class="history-item ${i<3?'top'+(i+1):''}">
       <div class="history-rank">${i+1}</div>
       <div class="history-name">${escapeHtml(name)}</div>
       <div class="history-meta">
         <span class="history-count">${Number(val.count)}<small>次</small></span>
-        ${val.lastTime?`<small class="last-time">最近 ${escapeHtml(val.lastTime)}</small>`:''}
+        ${when?`<small class="last-time">${escapeHtml(when)}</small>`:''}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 $('btnClearHistory').addEventListener('click',()=>{
