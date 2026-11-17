@@ -209,7 +209,10 @@
   }
 
   .hero-label {
-    position: relative;
+    position: absolute;
+    top: 26px;
+    left: 50%;
+    transform: translateX(-50%);
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -222,13 +225,14 @@
     border-radius: 999px;
     background: var(--card-soft);
     border: 1px solid var(--border-soft);
-    transition: color .2s, background .2s, border-color .2s;
+    transition: color .2s, background .2s, border-color .2s, opacity .22s var(--ease);
+    white-space: nowrap;
+    z-index: 1;
   }
+  /* 出结果后隐藏标签；菜名始终居中于整张卡片，上下留白对称 */
   .hero.done .hero-label {
-    color: var(--primary);
-    background: var(--primary-soft);
-    border-color: rgba(232, 116, 59, .2);
-    letter-spacing: .6px;
+    opacity: 0;
+    pointer-events: none;
   }
 
   .hero-main {
